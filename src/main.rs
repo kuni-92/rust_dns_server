@@ -1,3 +1,5 @@
+mod dns_header;
+
 use pretty_hex::*;
 use std::net::UdpSocket;
 
