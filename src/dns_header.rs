@@ -18,6 +18,12 @@ enum AA {
     NONE,
 }
 
+#[derive(PartialEq, Debug)]
+enum TC {
+    FIT,
+    TRUNCATED,
+}
+
 struct DnsHeader {
     field: [u16; 6],
 }
@@ -50,11 +56,19 @@ impl DnsHeader {
             _ => unreachable!(),
         }
     }
+
+    pub fn get_tc(&self) -> TC {
+        match (self.field[1] & 0b0000_0000_0010_0000) >> 5 {
+            0 => TC::FIT,
+            1 => TC::TRUNCATED,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::dns_header::{DnsHeader, Opcode, Qr, AA};
+    use crate::dns_header::{DnsHeader, Opcode, Qr, AA, TC};
 
     #[test]
     fn test_get_id() {
@@ -126,5 +140,21 @@ mod tests {
         let aa = DnsHeader { field: header_data }.get_aa();
         dbg!(&aa);
         assert_eq!(AA::NONE, aa);
+    }
+
+    #[test]
+    fn test_get_tc_fit() {
+        let header_data: [u16; 6] = [1, 0xFFDF, 3, 4, 5, 6];
+        let tc = DnsHeader { field: header_data }.get_tc();
+        dbg!(&tc);
+        assert_eq!(TC::FIT, tc);
+    }
+
+    #[test]
+    fn test_get_tc_truncate() {
+        let header_data: [u16; 6] = [1, 0xFFFF, 3, 4, 5, 6];
+        let tc = DnsHeader { field: header_data }.get_tc();
+        dbg!(&tc);
+        assert_eq!(TC::TRUNCATED, tc);
     }
 }
