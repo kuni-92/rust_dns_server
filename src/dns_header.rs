@@ -1,35 +1,10 @@
-use std::fmt;
-use std::fmt::{Debug, Formatter};
-
+#[derive(PartialEq, Debug)]
 enum Qr {
     REQUEST,
     RESPONSE,
 }
 
-impl PartialEq for Qr {
-    fn eq(&self, other: &Self) -> bool {
-        match *self {
-            Qr::REQUEST => match *other {
-                Qr::REQUEST => true,
-                _ => false,
-            },
-            Qr::RESPONSE => match *other {
-                Qr::RESPONSE => true,
-                _ => false,
-            },
-        }
-    }
-}
-
-impl Debug for Qr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Qr::REQUEST => write!(f, "REQUEST"),
-            Qr::RESPONSE => write!(f, "RESPONSE"),
-        }
-    }
-}
-
+#[derive(PartialEq, Debug)]
 enum Opcode {
     QUERY,
     IQUERY,
@@ -54,7 +29,7 @@ impl DnsHeader {
     }
 
     pub fn get_opcode(&self) -> Opcode {
-        match self.field[1] & 0b0000_0000_0000_1110 >> 1 {
+        match (self.field[1] & 0b0000_0000_0000_1110) >> 1 {
             0 => Opcode::QUERY,
             1 => Opcode::IQUERY,
             2 => Opcode::STATUS,
@@ -65,7 +40,7 @@ impl DnsHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns_header::{DnsHeader, Qr};
+    use crate::dns_header::{DnsHeader, Opcode, Qr};
 
     #[test]
     fn test_get_id() {
@@ -89,5 +64,37 @@ mod tests {
         let qr = DnsHeader { field: header_data }.get_qr();
         dbg!(&qr);
         assert_eq!(Qr::REQUEST, qr);
+    }
+
+    #[test]
+    fn test_get_opcode_query() {
+        let header_data: [u16; 6] = [1, 0xFFF1, 3, 4, 5, 6];
+        let opcode = DnsHeader { field: header_data }.get_opcode();
+        dbg!(&opcode);
+        assert_eq!(Opcode::QUERY, opcode);
+    }
+
+    #[test]
+    fn test_get_opcode_iquery() {
+        let header_data: [u16; 6] = [1, 0xFFF2, 3, 4, 5, 6];
+        let opcode = DnsHeader { field: header_data }.get_opcode();
+        dbg!(&opcode);
+        assert_eq!(Opcode::IQUERY, opcode);
+    }
+
+    #[test]
+    fn test_get_opcode_reserve_min() {
+        let header_data: [u16; 6] = [1, 0xFFF3, 3, 4, 5, 6];
+        let opcode = DnsHeader { field: header_data }.get_opcode();
+        dbg!(&opcode);
+        assert_eq!(Opcode::RESERVE, opcode);
+    }
+
+    #[test]
+    fn test_get_opcode_reserve_max() {
+        let header_data: [u16; 6] = [1, 0xFFFF, 3, 4, 5, 6];
+        let opcode = DnsHeader { field: header_data }.get_opcode();
+        dbg!(&opcode);
+        assert_eq!(Opcode::RESERVE, opcode);
     }
 }
