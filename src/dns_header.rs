@@ -12,6 +12,12 @@ enum Opcode {
     RESERVE,
 }
 
+#[derive(PartialEq, Debug)]
+enum AA {
+    HAVE,
+    NONE,
+}
+
 struct DnsHeader {
     field: [u16; 6],
 }
@@ -36,11 +42,19 @@ impl DnsHeader {
             _ => Opcode::RESERVE,
         }
     }
+
+    pub fn get_aa(&self) -> AA {
+        match (self.field[1] & 0b0000_0000_0001_0000) >> 4 {
+            0 => AA::NONE,
+            1 => AA::HAVE,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::dns_header::{DnsHeader, Opcode, Qr};
+    use crate::dns_header::{DnsHeader, Opcode, Qr, AA};
 
     #[test]
     fn test_get_id() {
@@ -96,5 +110,21 @@ mod tests {
         let opcode = DnsHeader { field: header_data }.get_opcode();
         dbg!(&opcode);
         assert_eq!(Opcode::RESERVE, opcode);
+    }
+
+    #[test]
+    fn test_get_aa_have() {
+        let header_data: [u16; 6] = [1, 0xFFFF, 3, 4, 5, 6];
+        let aa = DnsHeader { field: header_data }.get_aa();
+        dbg!(&aa);
+        assert_eq!(AA::HAVE, aa);
+    }
+
+    #[test]
+    fn test_get_aa_none() {
+        let header_data: [u16; 6] = [1, 0xFFEF, 3, 4, 5, 6];
+        let aa = DnsHeader { field: header_data }.get_aa();
+        dbg!(&aa);
+        assert_eq!(AA::NONE, aa);
     }
 }
